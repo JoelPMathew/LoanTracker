@@ -1,0 +1,8 @@
+
+{
+  "name": "LoanTracker Pro",
+  "description": "A comprehensive loan management platform for borrowers and lenders, featuring real-time tracking, AI-powered insights, and a seamless dashboard experience.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
