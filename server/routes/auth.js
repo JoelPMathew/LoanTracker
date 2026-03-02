@@ -58,8 +58,8 @@ router.post('/register', async (req, res) => {
             }
         );
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+        console.error('Registration error:', err.message);
+        res.status(500).json({ message: 'Server error during registration', error: err.message });
     }
 });
 
@@ -113,8 +113,8 @@ router.post('/login', async (req, res) => {
             }
         );
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+        console.error('Login error:', err.message);
+        res.status(500).json({ message: 'Server error during login', error: err.message });
     }
 });
 
@@ -132,8 +132,8 @@ router.get('/user', auth, async (req, res) => {
             role: user.role
         });
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+        console.error('Fetch user error:', err.message);
+        res.status(500).json({ message: 'Server error fetching user data', error: err.message });
     }
 });
 
@@ -148,8 +148,8 @@ router.get('/users', auth, async (req, res) => {
         const users = await User.find().select('-password');
         res.json(users);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+        console.error('Fetch users error:', err.message);
+        res.status(500).json({ message: 'Server error fetching users list', error: err.message });
     }
 });
 
