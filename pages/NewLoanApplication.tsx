@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
-import api from '../api/axios';
+import api from '../client-api/axios';
 
 const NewLoanApplication: React.FC = () => {
   const navigate = useNavigate();

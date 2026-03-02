@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { User, UserRole } from '../types';
-import api from '../api/axios';
+import api from '../client-api/axios';
 
 interface SignUpPageProps {
   onLogin: (user: User) => void;

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
-import api from '../api/axios';
+import api from '../client-api/axios';
 import { User } from '../types';
 
 const ProfilePage: React.FC = () => {

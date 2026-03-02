@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
-import api from '../api/axios';
+import api from '../client-api/axios';
 import { useNavigate } from 'react-router-dom';
 
 const AdminLoansPage: React.FC = () => {

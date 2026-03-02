@@ -4,7 +4,7 @@ import Layout from '../components/Layout';
 import { User } from '../types';
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from 'recharts';
 import { useNavigate } from 'react-router-dom';
-import api from '../api/axios';
+import api from '../client-api/axios';
 
 const AdminDashboard: React.FC<{ user: User | null }> = ({ user }) => {
   const navigate = useNavigate();
