@@ -65,7 +65,9 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onLogin }) => {
       onLogin(data.user);
       navigate('/dashboard');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Registration failed');
+      console.error('Registration error details:', err);
+      const errorMsg = err.response?.data?.message || err.message || 'Unknown network error';
+      alert(`Registration failed: ${errorMsg}`);
     }
   };
 
