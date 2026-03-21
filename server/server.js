@@ -39,10 +39,7 @@ async function connectToDatabase() {
         throw new Error('MONGODB_URI is not defined');
     }
 
-    const db = await mongoose.connect(mongoUri, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    });
+    const db = await mongoose.connect(mongoUri);
 
     cachedDb = db;
     console.log('MongoDB Connected');
