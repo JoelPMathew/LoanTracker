@@ -12,7 +12,7 @@ import NewLoanApplication from './pages/NewLoanApplication';
 import LoanDetailsPage from './pages/LoanDetailsPage';
 import ProfilePage from './pages/ProfilePage';
 import { User } from './types';
-import api from './api/axios';
+import api from './client-api/axios';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
