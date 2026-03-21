@@ -61,9 +61,9 @@ app.use(async (req, res, next) => {
 });
 
 // Routes
-app.use('/auth', require('./routes/auth'));
-app.use('/loans', require('./routes/loans'));
-app.use('/activities', require('./routes/activities'));
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/loans', require('./routes/loans'));
+app.use('/api/activities', require('./routes/activities'));
 
 // Basic Route
 app.get('/', (req, res) => {
