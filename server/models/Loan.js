@@ -28,7 +28,7 @@ const loanSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['PENDING', 'ACTIVE', 'OVERDUE', 'PAID'],
+        enum: ['PENDING', 'ACTIVE', 'REJECTED', 'OVERDUE', 'PAID'],
         default: 'PENDING'
     },
     typeId: {
