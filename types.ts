@@ -7,6 +7,7 @@ export enum UserRole {
 export enum LoanStatus {
   PENDING = 'PENDING',
   ACTIVE = 'ACTIVE',
+  REJECTED = 'REJECTED',
   OVERDUE = 'OVERDUE',
   PAID = 'PAID'
 }
