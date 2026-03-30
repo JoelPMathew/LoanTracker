@@ -22,6 +22,8 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
     }
   }, [user]);
 
+  const getLoanNumber = (loanId: string) => `LN-${String(loanId).slice(-6).toUpperCase()}`;
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -44,7 +46,8 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
           const normalized = repRes.data.map((rep: any) => ({
             ...rep,
             loanRef: loan._id,
-            loanDisplayName: (loan.typeId as any)?.name || 'Loan'
+            loanDisplayName: (loan.typeId as any)?.name || 'Loan',
+            loanNumber: getLoanNumber(loan._id)
           }));
           allRepayments.push(...normalized);
         } catch (e) {
@@ -63,12 +66,12 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nextDueLoan) return;
+    if (!nextDueLoan || !nextDueInstallment) return;
 
     try {
       setSubmitting(true);
       const res = await api.post(`/loans/${nextDueLoan._id}/pay`, {
-        amount: parseFloat(nextDueLoan.nextPaymentAmount.toString()),
+        amount: parseFloat(nextDueInstallment.amount.toString()),
         paymentMethod: 'Manual/Transfer',
         proof: payReference
       });
@@ -90,9 +93,13 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
   const approvedLoans = loans.filter(loan => [LoanStatus.ACTIVE, LoanStatus.OVERDUE, LoanStatus.PAID].includes(loan.status));
   const repayableLoans = loans.filter(loan => [LoanStatus.ACTIVE, LoanStatus.OVERDUE].includes(loan.status));
   const totalBalance = approvedLoans.reduce((sum, loan) => sum + loan.remainingBalance, 0);
-  const nextDueLoan = [...repayableLoans].sort((a, b) => new Date(a.nextPaymentDate).getTime() - new Date(b.nextPaymentDate).getTime())[0];
+  const payableInstallments = repayments.filter((rep) => ['PENDING', 'OVERDUE', 'REJECTED'].includes(rep.status));
+  const nextDueInstallment = [...payableInstallments].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+  const nextDueLoan = nextDueInstallment
+    ? repayableLoans.find((loan) => String(loan._id) === String(nextDueInstallment.loanRef))
+    : undefined;
   const currentLoanRepayments = nextDueLoan
-    ? repayments.filter((r) => r.loanRef === nextDueLoan._id)
+    ? repayments.filter((r) => String(r.loanRef) === String(nextDueLoan._id))
     : [];
 
   // Chart Data from Repayments (Projected Balance)
@@ -145,7 +152,7 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
                 <div>
                   <p className="text-slate-400 text-xs uppercase tracking-wider font-bold mb-1">Next Due Date</p>
                   <p className="text-white text-xl font-bold">
-                    {nextDueLoan?.nextPaymentDate ? new Date(nextDueLoan.nextPaymentDate).toLocaleDateString() : 'N/A'}
+                    {nextDueInstallment?.dueDate ? new Date(nextDueInstallment.dueDate).toLocaleDateString() : 'N/A'}
                   </p>
                 </div>
               </div>
@@ -180,7 +187,10 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
                             <span className="ml-2 px-1.5 py-0.5 bg-rose-500/10 text-rose-500 text-[10px] rounded font-bold uppercase">Overdue</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-slate-300">{rep.loanDisplayName}</td>
+                        <td className="px-6 py-4 text-slate-300">
+                          <p>{rep.loanDisplayName}</p>
+                          <p className="text-[10px] text-slate-500">{rep.loanNumber}</p>
+                        </td>
                         <td className="px-6 py-4 text-slate-300">${rep.amount.toLocaleString()}</td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${rep.status === 'CONFIRMED' || rep.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-500' :
@@ -206,28 +216,29 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
         {/* Right Column */}
         <div className="space-y-6">
           {/* Pay Now Card */}
-          {nextDueLoan && (
-            <section className={`p-6 rounded-3xl border ${isOverdue(nextDueLoan.nextPaymentDate) ? 'bg-rose-500/10 border-rose-500/20' : 'bg-surface-dark border-slate-800'}`}>
+          {nextDueLoan && nextDueInstallment && (
+            <section className={`p-6 rounded-3xl border ${isOverdue(nextDueInstallment.dueDate) ? 'bg-rose-500/10 border-rose-500/20' : 'bg-surface-dark border-slate-800'}`}>
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Upcoming Installment</p>
-                    {isOverdue(nextDueLoan.nextPaymentDate) && (
+                    {isOverdue(nextDueInstallment.dueDate) && (
                       <span className="px-1.5 py-0.5 bg-rose-500 text-white text-[10px] rounded font-bold uppercase animate-pulse">Overdue</span>
                     )}
                   </div>
-                  <p className="text-white text-3xl font-bold">${nextDueLoan.nextPaymentAmount}</p>
-                  <p className={`text-xs mt-1 ${isOverdue(nextDueLoan.nextPaymentDate) ? 'text-rose-400' : 'text-slate-500'}`}>
-                    Due {new Date(nextDueLoan.nextPaymentDate).toLocaleDateString()}
+                  <p className="text-white text-3xl font-bold">${Number(nextDueInstallment.amount).toLocaleString()}</p>
+                  <p className="text-slate-500 text-xs mt-1">{getLoanNumber(String(nextDueLoan._id))}</p>
+                  <p className={`text-xs mt-1 ${isOverdue(nextDueInstallment.dueDate) ? 'text-rose-400' : 'text-slate-500'}`}>
+                    Due {new Date(nextDueInstallment.dueDate).toLocaleDateString()}
                   </p>
                 </div>
-                <span className={`w-10 h-10 rounded-full flex items-center justify-center ${isOverdue(nextDueLoan.nextPaymentDate) ? 'bg-rose-500/20 text-rose-500' : 'bg-orange-500/10 text-orange-500'}`}>
+                <span className={`w-10 h-10 rounded-full flex items-center justify-center ${isOverdue(nextDueInstallment.dueDate) ? 'bg-rose-500/20 text-rose-500' : 'bg-orange-500/10 text-orange-500'}`}>
                   <span className="material-symbols-outlined">payments</span>
                 </span>
               </div>
               <button
                 onClick={() => setShowPayModal(true)}
-                className={`w-full py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 ${isOverdue(nextDueLoan.nextPaymentDate) ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-white text-black hover:bg-gray-200'}`}
+                className={`w-full py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 ${isOverdue(nextDueInstallment.dueDate) ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-white text-black hover:bg-gray-200'}`}
               >
                 <span>Pay Now</span>
                 <span className="material-symbols-outlined text-sm">arrow_forward</span>
@@ -252,8 +263,9 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Amount to Pay</label>
                     <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700 text-white font-mono text-xl">
-                      ${nextDueLoan?.nextPaymentAmount}
+                      ${nextDueInstallment ? Number(nextDueInstallment.amount).toLocaleString() : '-'}
                     </div>
+                    <p className="text-slate-500 text-xs mt-2">Loan {nextDueLoan ? getLoanNumber(String(nextDueLoan._id)) : '-'}</p>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Transaction Reference / Proof</label>
