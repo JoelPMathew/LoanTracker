@@ -80,7 +80,8 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onLogin }) => {
         <h2 className="text-white text-lg font-bold flex-1 text-center pr-10">Sign Up</h2>
       </div>
 
-      <div className="px-4 py-6 space-y-2">
+      <div className="w-full max-w-2xl mx-auto px-4 pb-8">
+      <div className="py-6 space-y-2">
         <h1 className="text-white text-3xl font-bold">Create Account</h1>
         <p className="text-slate-400">Start tracking your loans efficiently today.</p>
 
@@ -103,7 +104,7 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onLogin }) => {
         </div>
       </div>
 
-      <form className="px-4 space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-1">
           <label className="text-white font-medium text-sm">Full Name</label>
           <input
@@ -186,27 +187,11 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onLogin }) => {
         </button>
       </form>
 
-      <div className="flex items-center gap-4 px-4 py-8">
-        <div className="h-px flex-1 bg-slate-800"></div>
-        <span className="text-slate-500 text-sm">Or continue with</span>
-        <div className="h-px flex-1 bg-slate-800"></div>
+      <div className="text-center pt-8">
+        <p className="text-slate-400">
+          Already have an account? <button onClick={() => navigate('/login')} className="text-primary font-bold hover:underline">Log in</button>
+        </p>
       </div>
-
-      <div className="px-4 space-y-3 pb-8">
-        <button type="button" className="w-full h-12 bg-[#1c2127] border border-slate-700 rounded-xl flex items-center justify-center gap-2 text-white hover:bg-slate-800 transition-colors">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" className="w-5 h-5" alt="Google" />
-          Continue with Google
-        </button>
-        <button type="button" className="w-full h-12 bg-[#1c2127] border border-slate-700 rounded-xl flex items-center justify-center gap-2 text-white hover:bg-slate-800 transition-colors">
-          <span className="material-symbols-outlined">apple</span>
-          Continue with Apple
-        </button>
-
-        <div className="text-center pt-6">
-          <p className="text-slate-400">
-            Already have an account? <button onClick={() => navigate('/login')} className="text-primary font-bold hover:underline">Log in</button>
-          </p>
-        </div>
       </div>
     </Layout>
   );
