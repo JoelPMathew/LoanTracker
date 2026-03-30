@@ -12,6 +12,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [activeRole, setActiveRole] = useState<UserRole>(UserRole.ADMIN);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -87,21 +88,25 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           </div>
 
           <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-white text-sm font-medium">Password</span>
-              <button type="button" className="text-primary text-sm font-medium">Forgot Password?</button>
-            </div>
+            <span className="text-white text-sm font-medium">Password</span>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined text-[20px]">lock</span>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full h-12 pl-11 pr-12 bg-slate-50 dark:bg-[#111418] border dark:border-[#3b4754] rounded-lg text-white"
                 placeholder="••••••••"
                 required
               />
-              <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined text-[20px]">visibility_off</button>
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined text-[20px]"
+              >
+                {showPassword ? 'visibility' : 'visibility_off'}
+              </button>
             </div>
           </div>
 
@@ -109,12 +114,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             Log In as {activeRole === UserRole.ADMIN ? 'Admin' : 'Customer'}
           </button>
         </form>
-
-        <div className="px-6 pb-8 text-center">
-          <p className="text-slate-400 text-sm">
-            Need help? <button className="text-primary font-bold">Contact Support</button>
-          </p>
-        </div>
       </div>
     </div>
   );
