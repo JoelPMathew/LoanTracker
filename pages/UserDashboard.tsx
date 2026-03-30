@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { User, Activity, Loan } from '../types';
+import { User, Activity, Loan, LoanStatus } from '../types';
 import { AreaChart, Area, XAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import api from '../client-api/axios';
@@ -76,7 +76,8 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
     return new Date(date) < new Date();
   };
 
-  const totalBalance = loans.reduce((sum, loan) => sum + loan.remainingBalance, 0);
+  const approvedLoans = loans.filter(loan => [LoanStatus.ACTIVE, LoanStatus.OVERDUE, LoanStatus.PAID].includes(loan.status));
+  const totalBalance = approvedLoans.reduce((sum, loan) => sum + loan.remainingBalance, 0);
   const activeLoan = loans.find(l => l.status === 'ACTIVE');
 
   // Chart Data from Repayments (Projected Balance)
