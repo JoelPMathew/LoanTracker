@@ -42,8 +42,8 @@ const AdminDashboard: React.FC<{ user: User | null }> = ({ user }) => {
     try {
       await api.put(`/loans/${id}`, { status });
       fetchLoans();
-    } catch (err) {
-      alert('Failed to update status');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to update status');
     }
   };
 
