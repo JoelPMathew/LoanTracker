@@ -32,16 +32,28 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
       setLoans(loansRes.data);
       setActivities(activitiesRes.data);
 
-      // Fetch repayments for the active loan if exists
-      const activeLoan = loansRes.data.find((l: any) => l.status === 'ACTIVE');
-      if (activeLoan) {
+      // Fetch and combine repayments across approved loans, then sort globally by due date.
+      const repaymentEligibleLoans = loansRes.data.filter((loan: any) =>
+        [LoanStatus.ACTIVE, LoanStatus.OVERDUE, LoanStatus.PAID].includes(loan.status)
+      );
+
+      const allRepayments: any[] = [];
+      for (const loan of repaymentEligibleLoans) {
         try {
-          const repRes = await api.get(`/loans/${activeLoan._id}/repayments`);
-          setRepayments(repRes.data);
+          const repRes = await api.get(`/loans/${loan._id}/repayments`);
+          const normalized = repRes.data.map((rep: any) => ({
+            ...rep,
+            loanRef: loan._id,
+            loanDisplayName: (loan.typeId as any)?.name || 'Loan'
+          }));
+          allRepayments.push(...normalized);
         } catch (e) {
-          console.error('Failed to fetch repayments', e);
+          console.error(`Failed to fetch repayments for loan ${loan._id}`, e);
         }
       }
+
+      allRepayments.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+      setRepayments(allRepayments);
     } catch (err) {
       console.error('Failed to fetch dashboard data', err);
     } finally {
@@ -51,13 +63,12 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    const activeLoan = loans.find(l => l.status === 'ACTIVE');
-    if (!activeLoan) return;
+    if (!nextDueLoan) return;
 
     try {
       setSubmitting(true);
-      const res = await api.post(`/loans/${activeLoan._id}/pay`, {
-        amount: parseFloat(activeLoan.nextPaymentAmount.toString()),
+      const res = await api.post(`/loans/${nextDueLoan._id}/pay`, {
+        amount: parseFloat(nextDueLoan.nextPaymentAmount.toString()),
         paymentMethod: 'Manual/Transfer',
         proof: payReference
       });
@@ -77,15 +88,19 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
   };
 
   const approvedLoans = loans.filter(loan => [LoanStatus.ACTIVE, LoanStatus.OVERDUE, LoanStatus.PAID].includes(loan.status));
+  const repayableLoans = loans.filter(loan => [LoanStatus.ACTIVE, LoanStatus.OVERDUE].includes(loan.status));
   const totalBalance = approvedLoans.reduce((sum, loan) => sum + loan.remainingBalance, 0);
-  const activeLoan = loans.find(l => l.status === 'ACTIVE');
+  const nextDueLoan = [...repayableLoans].sort((a, b) => new Date(a.nextPaymentDate).getTime() - new Date(b.nextPaymentDate).getTime())[0];
+  const currentLoanRepayments = nextDueLoan
+    ? repayments.filter((r) => r.loanRef === nextDueLoan._id)
+    : [];
 
   // Chart Data from Repayments (Projected Balance)
   const chartData = [
-    { name: 'Start', val: activeLoan?.amount || 0 },
-    ...repayments.filter(r => r.status === 'CONFIRMED' || r.status === 'PAID').map((r, i) => ({
+    { name: 'Start', val: nextDueLoan?.amount || 0 },
+    ...currentLoanRepayments.filter(r => r.status === 'CONFIRMED' || r.status === 'PAID').map((r, i) => ({
       name: `Pay ${i + 1}`,
-      val: (activeLoan?.amount || 0) - ((i + 1) * r.amount) // Rough estimate for chart
+      val: (nextDueLoan?.amount || 0) - ((i + 1) * r.amount) // Rough estimate for chart
     }))
   ];
 
@@ -130,7 +145,7 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
                 <div>
                   <p className="text-slate-400 text-xs uppercase tracking-wider font-bold mb-1">Next Due Date</p>
                   <p className="text-white text-xl font-bold">
-                    {activeLoan?.nextPaymentDate ? new Date(activeLoan.nextPaymentDate).toLocaleDateString() : 'N/A'}
+                    {nextDueLoan?.nextPaymentDate ? new Date(nextDueLoan.nextPaymentDate).toLocaleDateString() : 'N/A'}
                   </p>
                 </div>
               </div>
@@ -147,6 +162,7 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
                 <thead className="bg-slate-800/50 text-slate-400 text-xs uppercase font-bold">
                   <tr>
                     <th className="px-6 py-3">Due Date</th>
+                    <th className="px-6 py-3">Loan</th>
                     <th className="px-6 py-3">Amount</th>
                     <th className="px-6 py-3">Status</th>
                     <th className="px-6 py-3">Paid On</th>
@@ -154,7 +170,7 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
                 </thead>
                 <tbody className="divide-y divide-slate-800">
                   {repayments.length === 0 ? (
-                    <tr><td colSpan={4} className="px-6 py-4 text-center text-slate-500">No repayment history found.</td></tr>
+                    <tr><td colSpan={5} className="px-6 py-4 text-center text-slate-500">No repayment history found.</td></tr>
                   ) : (
                     repayments.map((rep) => (
                       <tr key={rep._id} className="hover:bg-white/5 transition-colors">
@@ -164,6 +180,7 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
                             <span className="ml-2 px-1.5 py-0.5 bg-rose-500/10 text-rose-500 text-[10px] rounded font-bold uppercase">Overdue</span>
                           )}
                         </td>
+                        <td className="px-6 py-4 text-slate-300">{rep.loanDisplayName}</td>
                         <td className="px-6 py-4 text-slate-300">${rep.amount.toLocaleString()}</td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${rep.status === 'CONFIRMED' || rep.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-500' :
@@ -189,28 +206,28 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
         {/* Right Column */}
         <div className="space-y-6">
           {/* Pay Now Card */}
-          {activeLoan && (
-            <section className={`p-6 rounded-3xl border ${isOverdue(activeLoan.nextPaymentDate) ? 'bg-rose-500/10 border-rose-500/20' : 'bg-surface-dark border-slate-800'}`}>
+          {nextDueLoan && (
+            <section className={`p-6 rounded-3xl border ${isOverdue(nextDueLoan.nextPaymentDate) ? 'bg-rose-500/10 border-rose-500/20' : 'bg-surface-dark border-slate-800'}`}>
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Upcoming Installment</p>
-                    {isOverdue(activeLoan.nextPaymentDate) && (
+                    {isOverdue(nextDueLoan.nextPaymentDate) && (
                       <span className="px-1.5 py-0.5 bg-rose-500 text-white text-[10px] rounded font-bold uppercase animate-pulse">Overdue</span>
                     )}
                   </div>
-                  <p className="text-white text-3xl font-bold">${activeLoan.nextPaymentAmount}</p>
-                  <p className={`text-xs mt-1 ${isOverdue(activeLoan.nextPaymentDate) ? 'text-rose-400' : 'text-slate-500'}`}>
-                    Due {new Date(activeLoan.nextPaymentDate).toLocaleDateString()}
+                  <p className="text-white text-3xl font-bold">${nextDueLoan.nextPaymentAmount}</p>
+                  <p className={`text-xs mt-1 ${isOverdue(nextDueLoan.nextPaymentDate) ? 'text-rose-400' : 'text-slate-500'}`}>
+                    Due {new Date(nextDueLoan.nextPaymentDate).toLocaleDateString()}
                   </p>
                 </div>
-                <span className={`w-10 h-10 rounded-full flex items-center justify-center ${isOverdue(activeLoan.nextPaymentDate) ? 'bg-rose-500/20 text-rose-500' : 'bg-orange-500/10 text-orange-500'}`}>
+                <span className={`w-10 h-10 rounded-full flex items-center justify-center ${isOverdue(nextDueLoan.nextPaymentDate) ? 'bg-rose-500/20 text-rose-500' : 'bg-orange-500/10 text-orange-500'}`}>
                   <span className="material-symbols-outlined">payments</span>
                 </span>
               </div>
               <button
                 onClick={() => setShowPayModal(true)}
-                className={`w-full py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 ${isOverdue(activeLoan.nextPaymentDate) ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-white text-black hover:bg-gray-200'}`}
+                className={`w-full py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 ${isOverdue(nextDueLoan.nextPaymentDate) ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-white text-black hover:bg-gray-200'}`}
               >
                 <span>Pay Now</span>
                 <span className="material-symbols-outlined text-sm">arrow_forward</span>
@@ -235,7 +252,7 @@ const UserDashboard: React.FC<{ user: User | null }> = ({ user }) => {
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Amount to Pay</label>
                     <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700 text-white font-mono text-xl">
-                      ${activeLoan?.nextPaymentAmount}
+                      ${nextDueLoan?.nextPaymentAmount}
                     </div>
                   </div>
                   <div>
